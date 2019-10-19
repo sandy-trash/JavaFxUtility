@@ -1,0 +1,110 @@
+package controllers;
+
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.Reader;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.TreeMap;
+
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
+
+import model.UserModel;
+
+public class MergeEnv {
+
+	JSONParser parser = new JSONParser();
+	List<UserModel> listModel = new ArrayList<>();
+
+	public List<JSONObject> getFile() {
+		List<JSONObject> arr = new ArrayList<>();
+
+		try (Reader reader = new FileReader("C:/Source_Tree/KPUtility/src/env1.txt")) {
+
+			JSONObject jsonObject = (JSONObject) parser.parse(reader);
+			arr.add(jsonObject);
+			System.out.println(jsonObject);
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (ParseException e) {
+			e.printStackTrace();
+		}
+		try (Reader reader = new FileReader("C:/Source_Tree/KPUtility/src/env2.txt")) {
+
+			JSONObject jsonObject = (JSONObject) parser.parse(reader);
+			arr.add(jsonObject);
+			System.out.println(jsonObject);
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (ParseException e) {
+			e.printStackTrace();
+		}
+
+		return arr;
+	}
+
+	public List<UserModel> merge() {
+		List<JSONObject> list = getFile();
+		JSONObject obj;
+		String id, name, decision;
+		ArrayList<UserModel> userModelList = new ArrayList<UserModel>();
+		ArrayList<String> idList = new ArrayList<String>();
+		ArrayList<String> nameList = new ArrayList<String>();
+	    TreeMap<String, ArrayList<String>> decisionMap = new TreeMap<String, ArrayList<String>>();
+		for (int i = 0; i < list.size(); i++) {
+			JSONArray arr = (JSONArray) list.get(i).get("resource");
+		
+			for (int j = 0; j < arr.size(); j++) {
+				
+					obj = (JSONObject) arr.get(j);
+					id = (String) obj.get("id");
+					name = (String) obj.get("name");
+					decision = (String) obj.get("permission");
+					//listModel.add("");
+					
+					//decisionList.add(decision);
+					if(decisionMap.containsKey(id)){
+						ArrayList<String> decisionListValue = decisionMap.get(id);
+						decisionListValue.add(decision);
+						decisionMap.remove(id);
+						decisionMap.put(id, decisionListValue);
+					}else{
+						idList.add(id);
+						nameList.add(name);
+						ArrayList<String> decisionListValue = new ArrayList<String>();
+						decisionListValue.add(decision);
+						decisionMap.put(id, decisionListValue);
+					}
+			}
+			
+			
+			int idListSize = idList.size();
+			String id1, name1;
+			for(int indx=0;indx<idListSize;indx++){
+				UserModel model = new UserModel();
+				id1 = idList.get(indx);
+				name1 = nameList.get(indx);
+				model.setId(id1);
+				model.setName(name1);
+				model.setDecision(decisionMap.get(id1));
+				userModelList.add(model);
+			}
+			
+		}
+		
+		return userModelList;
+	}
+
+	public static void main(String[] args) {
+		MergeEnv m = new MergeEnv();
+		List<UserModel> u = m.merge();
+		
+		for(UserModel u1 : u){
+			System.out.println(u1.getId() + " : " + u1.getName() + " : " + u1.getDecision());
+		}
+
+	}
+}
