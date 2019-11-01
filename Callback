@@ -1,0 +1,254 @@
+package model;
+
+import java.io.Serializable;
+import java.util.List;
+import java.util.function.Function;
+
+import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.value.ObservableValue;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableColumn.CellDataFeatures;
+import javafx.util.Callback;
+
+public class UserModel implements Serializable {
+
+	private static final long serialVersionUID = 1L;
+
+	private String name;
+	private String id;
+	private List<String> decision;
+
+	public UserModel() {
+
+	}
+
+	public UserModel(String name, String id, List<String> decision) {
+		super();
+		this.name = name;
+		this.id = id;
+		this.decision = decision;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+	public String getId() {
+		return id;
+	}
+
+	public List<String> getDecision() {
+		return decision;
+	}
+
+	public void setDecision(List<String> decision) {
+		this.decision = decision;
+	}
+
+	public void setId(String id) {
+		this.id = id;
+	}
+
+	public void setEntitlement_id(String id) {
+		this.id = id;
+	}
+
+	public class UserModelCallback1
+			implements Callback<TableColumn.CellDataFeatures<UserModel, String>, ObservableValue<String>> {
+
+		private Function<UserModel, Object> extractor;
+
+		public UserModelCallback1(Function<UserModel, Object> extractorFunction) {
+			extractor = extractorFunction;
+		}
+
+		@Override
+		public ObservableValue<String> call(CellDataFeatures<UserModel, String> cellData) {
+
+			return new SimpleObjectProperty(extractor.apply(cellData.getValue()));
+		}
+
+	}
+
+}
+-----------------------------------------------------------------------------------------------------------
+
+
+
+package controllers;
+
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.Reader;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.ResourceBundle;
+
+import org.controlsfx.control.CheckComboBox;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
+
+import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
+import javafx.collections.ObservableList;
+import javafx.concurrent.Task;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
+import javafx.fxml.FXML;
+import javafx.fxml.Initializable;
+import javafx.scene.control.Button;
+import javafx.scene.control.ProgressIndicator;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
+import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.layout.AnchorPane;
+import javafx.scene.layout.StackPane;
+import model.UserModel;
+import model.UserModelCallback;
+
+public class SingleTestDataController implements Initializable {
+
+	@FXML
+	private AnchorPane tablePane;
+
+	@FXML
+	private StackPane stackPane;
+
+	@FXML
+	private Button btnGo;
+
+	@FXML
+	private TableView<UserModel> tbEntl;
+
+	
+	private ObservableList<String> cmbxEnvList = FXCollections.observableArrayList("HPP IDC", "HINT1", "DEV3", "DEV4",
+			"HREG2");
+
+	@FXML
+	private CheckComboBox<String> cmbxEnv;
+	
+	
+	JSONParser parser = new JSONParser();
+	
+	public List<JSONObject> getFile(){
+		List<JSONObject> arr = new ArrayList<>();
+		
+		try (Reader reader = new FileReader("C:/Source_Tree/KPUtility/src/env1.txt")) {
+
+            JSONObject jsonObject = (JSONObject) parser.parse(reader);
+            arr.add(jsonObject);
+            System.out.println(jsonObject);
+		}catch (IOException e) {
+            e.printStackTrace();
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+		try (Reader reader = new FileReader("C:/Source_Tree/KPUtility/src/env2.txt")) {
+
+            JSONObject jsonObject = (JSONObject) parser.parse(reader);
+            arr.add(jsonObject);
+            System.out.println(jsonObject);
+		}catch (IOException e) {
+            e.printStackTrace();
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+		
+		return arr;
+	}
+	
+	
+	public ObservableList<UserModel> createItems(){
+		
+		ObservableList<UserModel> users = FXCollections.observableArrayList();
+		users.add(new UserModel("John","001",Arrays.asList("123","456","789")));
+		users.add(new UserModel("James","002",Arrays.asList("456","789","123")));
+		users.add(new UserModel("Joe","003",Arrays.asList("123","456","789")));
+
+		return users;
+	}
+	
+	public List<TableColumn<UserModel, String>> createCol(ObservableList<UserModel> users){
+		List<TableColumn<UserModel, String>> columns = new ArrayList<>();
+		
+        TableColumn<UserModel, String> column1 = new TableColumn<>("Column " + 0);
+        column1.setCellValueFactory(new PropertyValueFactory<UserModel, String>("name"));
+        columns.add(column1);
+        
+        TableColumn<UserModel, String> column2 = new TableColumn<>("Column " + 1);
+        column2.setCellValueFactory(new PropertyValueFactory<UserModel, String>("id"));
+        columns.add(column2);
+
+        for(int i = 0; i < 3; i++) {
+            final int index = i;
+            TableColumn<UserModel, String> column = new TableColumn<>("Column " + (i + 2));
+            column.setCellValueFactory(new UserModel().new UserModelCallback1((user) -> { return user.getDecision().get(index);}));
+            columns.add(column);
+        }
+
+        return columns;
+	}
+	
+	public void createTable(){
+		ObservableList<UserModel> users = createItems();
+        List<TableColumn<UserModel, String>> columns = createCol(users);
+
+       // TableView<UserModel> tableView = new TableView<>();
+        tbEntl.getColumns().addAll(columns.toArray(new TableColumn[0]));
+        tbEntl.setItems(users);
+        
+	}
+	
+	@Override
+	public void initialize(URL location, ResourceBundle resources) {
+		cmbxEnv.getItems().addAll(cmbxEnvList);
+		cmbxEnv.getCheckModel().getCheckedItems().addListener(new ListChangeListener<String>() {
+			public void onChanged(ListChangeListener.Change<? extends String> c) {
+				System.out.println(cmbxEnv.getCheckModel().getCheckedItems());
+			}
+		});
+		btnGo.setOnAction(new EventHandler<ActionEvent>() {
+
+			@Override
+			public void handle(ActionEvent event) {
+				btnGo.setDisable(true);
+				
+				createTable();
+				
+				
+				
+				
+				
+				/*getFile();
+				
+				Task<List<UserModel>> t = new Task<List<UserModel>>(){
+
+					@Override
+					protected List<UserModel> call() throws Exception {
+						Thread.sleep(1000);
+						return null;
+					}						
+				};
+				
+				t.setOnSucceeded(e-> tbEntl.getItems().setAll(t.getValue()));
+
+				ProgressIndicator pi = new ProgressIndicator();
+				pi.setMaxWidth(60);
+				pi.setMaxHeight(60);
+				
+				tbEntl.setPlaceholder(pi);
+				
+				new Thread(t).start();*/
+			}
+		});
+	}
+	
+}
